@@ -73,13 +73,26 @@ func TestMmapFile(t *testing.T) {
 	}
 }
 
-/*func TestPull(t *testing.T) {
+func TestPull(t *testing.T) {
 	gpio := rpigpioTestInit()
-	var c uint8
-	for c = 0; c < 54; c++ {
-
+	err := gpio.setPull(PULLDOWN)
+	if gpio.mem[pullUpDownOffset] != uint32(PULLDOWN) || err != nil {
+		t.Error("setPull(DOWN) failed:", err)
 	}
-}*/
+	err = gpio.setPull(PULLUP)
+	if gpio.mem[pullUpDownOffset] != uint32(PULLUP) || err != nil {
+		t.Error("setPull(DOWN) failed:", err)
+	}
+	err = gpio.setPull(PULLOFF)
+	if gpio.mem[pullUpDownOffset] != uint32(PULLOFF) || err != nil {
+		t.Error("setPull(DOWN) failed:", err)
+	}
+	err = gpio.setPull(5)
+	if err == nil {
+		t.Error("setPull(5) should return error:", err)
+	}
+
+}
 
 func TestRead(t *testing.T) {
 	gpio := rpigpioTestInit()

@@ -141,14 +141,8 @@ func (gpio *RpiGpio) Pull(channel uint8, direction Pull) error {
 	clkRegister := (channel / 32) + pullUpDownClkOffset
 	shift := channel % 32
 
-	switch direction {
-	case PULLOFF:
-		gpio.mem[pullUpDownOffset] &^= 3
-	case PULLDOWN, PULLUP:
-		gpio.mem[pullUpDownOffset] = (gpio.mem[pullUpDownOffset] &^ 3) | uint32(direction)
-	default:
-		errString := fmt.Sprintf("Unknown pull direction: %d", direction)
-		return errors.New(errString)
+	if err := gpio.setPull(direction); err != nil {
+		return err
 	}
 
 	shortWait(150)
@@ -234,6 +228,19 @@ func (gpio *RpiGpio) mmapFile(f *os.File) (err error) {
 	header.Len /= 4
 	header.Cap /= 4
 	gpio.mem = *(*[]uint32)(unsafe.Pointer(&header))
+	return nil
+}
+
+func (gpio *RpiGpio) setPull(d Pull) error {
+	switch d {
+	case PULLOFF:
+		gpio.mem[pullUpDownOffset] &^= 3
+	case PULLDOWN, PULLUP:
+		gpio.mem[pullUpDownOffset] = (gpio.mem[pullUpDownOffset] &^ 3) | uint32(d)
+	default:
+		errString := fmt.Sprintf("Unknown pull direction: %d", d)
+		return errors.New(errString)
+	}
 	return nil
 }
 
