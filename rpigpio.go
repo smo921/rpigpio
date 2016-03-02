@@ -10,8 +10,11 @@ import (
 	"unsafe"
 )
 
+// ChannelFunction represents the BCM2835 function of a channel
+type ChannelFunction uint8
+
 // ChannelDirection represents the direction (IN/OUT) of a channel
-type ChannelDirection uint8
+type ChannelDirection ChannelFunction
 
 // ChannelState represents the state of an output channel: high/low
 type ChannelState uint8
@@ -42,8 +45,20 @@ const (
 
 // Enumerate avaialable channel directions
 const (
-	IN ChannelDirection = iota
-	OUT
+	IN  ChannelDirection = ChannelDirection(INPUT)
+	OUT ChannelDirection = ChannelDirection(OUTPUT)
+)
+
+// Enumerate avaialable channel functions
+const (
+	INPUT  ChannelFunction = 0
+	OUTPUT                 = 1
+	ALT0                   = 4
+	ALT1                   = 5
+	ALT2                   = 6
+	ALT3                   = 7
+	ALT4                   = 3
+	ALT5                   = 2
 )
 
 // Enumerate possible channel states
