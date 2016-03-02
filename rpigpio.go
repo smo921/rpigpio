@@ -10,11 +10,11 @@ import (
 	"unsafe"
 )
 
-// ChannelFunction represents the BCM2835 function of a channel
-type ChannelFunction uint8
+// PinFunction represents the BCM2835 function of a channel
+type PinFunction uint8
 
-// ChannelDirection represents the direction (IN/OUT) of a channel
-type ChannelDirection ChannelFunction
+// PinDirection represents the direction (IN/OUT) of a channel
+type PinDirection PinFunction
 
 // ChannelState represents the state of an output channel: high/low
 type ChannelState uint8
@@ -45,20 +45,20 @@ const (
 
 // Enumerate avaialable channel directions
 const (
-	IN  ChannelDirection = ChannelDirection(INPUT)
-	OUT ChannelDirection = ChannelDirection(OUTPUT)
+	IN  PinDirection = PinDirection(INPUT)
+	OUT PinDirection = PinDirection(OUTPUT)
 )
 
 // Enumerate avaialable channel functions
 const (
-	INPUT  ChannelFunction = 0
-	OUTPUT                 = 1
-	ALT0                   = 4
-	ALT1                   = 5
-	ALT2                   = 6
-	ALT3                   = 7
-	ALT4                   = 3
-	ALT5                   = 2
+	INPUT  PinFunction = 0
+	OUTPUT             = 1
+	ALT0               = 4
+	ALT1               = 5
+	ALT2               = 6
+	ALT3               = 7
+	ALT4               = 3
+	ALT5               = 2
 )
 
 // Enumerate possible channel states
@@ -133,7 +133,7 @@ func NewGPIO() (*RpiGpio, error) {
 }
 
 // Direction configures the direction (IN/OUT) of the channel
-func (gpio *RpiGpio) Direction(channel uint8, direction ChannelDirection) (err error) {
+func (gpio *RpiGpio) Direction(channel uint8, direction PinDirection) (err error) {
 	// Check package status is OK
 	// do some error checking ; verify channel and direction are valid, etc
 	// call c_gpio::setup_one()
