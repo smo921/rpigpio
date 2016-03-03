@@ -1,6 +1,9 @@
 package rpigpio
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var piPinToBCMPinRev2 = [27]int{
 	-1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1,
@@ -8,8 +11,11 @@ var piPinToBCMPinRev2 = [27]int{
 }
 
 // Deteriming GPIO number
-func getBCMPin(pin int) (uint, error) {
-	return 0, nil
+func (gpio *RpiGpio) getBCMGpio(pin int) (uint, error) {
+	if gpio.pinToBCMPin[pin] == -1 {
+		return 0, fmt.Errorf("Pin %d not available for GPIO", pin)
+	}
+	return uint(gpio.pinToBCMPin[pin]), nil
 }
 
 // NewGPIO sets up a new GPIO object
