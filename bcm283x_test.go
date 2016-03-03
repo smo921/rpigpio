@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+func bcmGpioTestInit() *bcmGpio {
+	gpio := new(bcmGpio)
+	gpio.mem = make([]uint32, 54)
+	return gpio
+}
+
 func TestMmapFile(t *testing.T) {
 	file, err := os.OpenFile("./test/gpiomem",
 		os.O_CREATE|os.O_TRUNC|os.O_RDWR|os.O_SYNC, 0666)
@@ -20,7 +26,7 @@ func TestMmapFile(t *testing.T) {
 	buf = make([]byte, memLength)
 	file.Write(buf)
 
-	gpio := rpigpioTestInit()
+	gpio := bcmGpioTestInit()
 	err = gpio.mmapFile(file)
 	if err != nil {
 		t.Error(fmt.Errorf("Error in mmapFile: %s", err))
@@ -46,7 +52,7 @@ func TestMmapFile(t *testing.T) {
 }
 
 func TestDirection(t *testing.T) {
-	gpio := rpigpioTestInit()
+	gpio := bcmGpioTestInit()
 	var c uint8
 	initRegisterValues := [5]uint32{
 		0x00000000,
@@ -68,7 +74,7 @@ func TestDirection(t *testing.T) {
 }
 
 func TestPull(t *testing.T) {
-	gpio := rpigpioTestInit()
+	gpio := bcmGpioTestInit()
 	err := gpio.setPull(PULLDOWN)
 	if gpio.mem[pullUpDownOffset] != uint32(PULLDOWN) || err != nil {
 		t.Error("setPull(DOWN) failed:", err)
@@ -88,7 +94,7 @@ func TestPull(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	gpio := rpigpioTestInit()
+	gpio := bcmGpioTestInit()
 	var c uint8
 	for c = 0; c < 54; c++ {
 		register := (c / 32) + pinLevelOffset
@@ -119,7 +125,7 @@ func TestShortWait(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	gpio := rpigpioTestInit()
+	gpio := bcmGpioTestInit()
 	var c uint8
 	for c = 0; c < 54; c++ {
 		setRegister := (c / 32) + setOffset
@@ -142,7 +148,7 @@ func TestWrite(t *testing.T) {
 	}
 }
 
-func testPinDirection(gpio *RpiGpio, c uint8) (err error) {
+func testPinDirection(gpio *bcmGpio, c uint8) (err error) {
 	var mask uint32
 	var val uint32
 

@@ -17,11 +17,16 @@ type Pull uint8
 // Status represents the status of the RpiGpio package
 type Status uint8
 
+// bcmGpio holds data for interacting with the BCM283x SoC
+type bcmGpio struct {
+	lock sync.Mutex
+	mem  []uint32
+	mem8 []uint8
+}
+
 // RpiGpio holds all data for a RPi GPIO implementation
 type RpiGpio struct {
-	lock        sync.Mutex
-	mem         []uint32
-	mem8        []uint8
+	bcm         *bcmGpio
 	pinToBCMPin [27]int
 	rpi         *RpiInfo
 	status      Status

@@ -16,6 +16,7 @@ func getBCMPin(pin int) (uint, error) {
 func NewGPIO() (*RpiGpio, error) {
 	var err error
 	gpio := new(RpiGpio)
+	gpio.bcm = new(bcmGpio)
 	gpio.status = NEW
 	gpio.rpi = new(RpiInfo)
 	gpio.rpi.GetCPUInfo()
@@ -27,7 +28,7 @@ func NewGPIO() (*RpiGpio, error) {
 	}
 	// set gpio "direction"  (in/out??)
 	// pinTopin = pinToGpiopinRev??
-	err = gpio.openGPIO()
+	err = gpio.bcm.open()
 	if err != nil {
 		return nil, err
 	}

@@ -9,8 +9,8 @@ import (
 	"unsafe"
 )
 
-// Close cleans up the RpiGpio resources
-func (gpio *RpiGpio) Close() error {
+// Close cleans up the bcmGpio resources
+func (gpio *bcmGpio) Close() error {
 	//event_cleanup_all()???  When we implement an event handler??
 	gpio.lock.Lock()
 	defer gpio.lock.Unlock()
@@ -18,7 +18,7 @@ func (gpio *RpiGpio) Close() error {
 }
 
 // Direction configures the direction (IN/OUT) of the pin
-func (gpio *RpiGpio) Direction(pin uint8, direction PinDirection) (err error) {
+func (gpio *bcmGpio) Direction(pin uint8, direction PinDirection) (err error) {
 	// Check package status is OK
 	// do some error checking ; verify pin and direction are valid, etc
 	// call c_gpio::setup_one()
@@ -37,7 +37,7 @@ func (gpio *RpiGpio) Direction(pin uint8, direction PinDirection) (err error) {
 }
 
 // Pull sets or clears the internal pull up/down resistor for a GPIO pin
-func (gpio *RpiGpio) Pull(pin uint8, direction Pull) error {
+func (gpio *bcmGpio) Pull(pin uint8, direction Pull) error {
 	clkRegister := (pin / 32) + pullUpDownClkOffset
 	shift := pin % 32
 
@@ -54,7 +54,7 @@ func (gpio *RpiGpio) Pull(pin uint8, direction Pull) error {
 }
 
 // Read value from pin
-func (gpio *RpiGpio) Read(pin uint8) PinState {
+func (gpio *bcmGpio) Read(pin uint8) PinState {
 	pinLevelRegister := (pin / 32) + pinLevelOffset
 	shift := pin % 32
 	if gpio.mem[pinLevelRegister]&(1<<shift) != 0 {
@@ -64,7 +64,7 @@ func (gpio *RpiGpio) Read(pin uint8) PinState {
 }
 
 // Write value (0/1) to pin
-func (gpio *RpiGpio) Write(pin uint8, state PinState) error {
+func (gpio *bcmGpio) Write(pin uint8, state PinState) error {
 	reg := pin / 32
 	shift := pin % 32
 	gpio.lock.Lock()
@@ -82,7 +82,7 @@ func (gpio *RpiGpio) Write(pin uint8, state PinState) error {
 	return nil
 }
 
-func (gpio *RpiGpio) openGPIO() (err error) {
+func (gpio *bcmGpio) open() (err error) {
 	file, err := os.OpenFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC, 0666)
 	if err != nil {
 		fmt.Println("Error opening /dev/gpiomem: ", err)
@@ -92,7 +92,7 @@ func (gpio *RpiGpio) openGPIO() (err error) {
 	return gpio.mmapFile(file)
 }
 
-func (gpio *RpiGpio) mmapFile(f *os.File) (err error) {
+func (gpio *bcmGpio) mmapFile(f *os.File) (err error) {
 	gpio.lock.Lock()
 	defer gpio.lock.Unlock()
 	// Memory map GPIO registers to byte array
@@ -114,7 +114,7 @@ func (gpio *RpiGpio) mmapFile(f *os.File) (err error) {
 	return nil
 }
 
-func (gpio *RpiGpio) setPull(d Pull) error {
+func (gpio *bcmGpio) setPull(d Pull) error {
 	switch d {
 	case PULLOFF:
 		gpio.mem[pullUpDownOffset] &^= 3
