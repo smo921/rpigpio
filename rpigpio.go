@@ -9,13 +9,13 @@ import (
 	"unsafe"
 )
 
-var pinToGpioChannelRev2 = [27]int{
+var piPinToBCMPinRev2 = [27]int{
 	-1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1,
 	22, 23, -1, 24, 10, -1, 9, 25, 11, 8, -1, 7,
 }
 
 // Deteriming GPIO number
-func getGpioNumber(channel int) (uint, error) {
+func getBCMPin(pin int) (uint, error) {
 	return 0, nil
 }
 
@@ -36,12 +36,12 @@ func NewGPIO() (*RpiGpio, error) {
 	gpio.rpi.GetCPUInfo()
 	switch int(gpio.rpi.piRevision) {
 	case 2:
-		gpio.pinToChannel = pinToGpioChannelRev2
+		gpio.pinToBCMPin = piPinToBCMPinRev2
 	default:
 		return nil, errors.New("Unknown Raspberry Pi hardware")
 	}
 	// set gpio "direction"  (in/out??)
-	// pinToChannel = pinToGpioChannelRev??
+	// pinTopin = pinToGpiopinRev??
 	err = gpio.openGPIO()
 	if err != nil {
 		return nil, err
@@ -50,29 +50,29 @@ func NewGPIO() (*RpiGpio, error) {
 	return gpio, nil
 }
 
-// Direction configures the direction (IN/OUT) of the channel
-func (gpio *RpiGpio) Direction(channel uint8, direction PinDirection) (err error) {
+// Direction configures the direction (IN/OUT) of the pin
+func (gpio *RpiGpio) Direction(pin uint8, direction PinDirection) (err error) {
 	// Check package status is OK
-	// do some error checking ; verify channel and direction are valid, etc
+	// do some error checking ; verify pin and direction are valid, etc
 	// call c_gpio::setup_one()
-	fsel := channel / 10
-	shift := (channel % 10) * 3
+	fsel := pin / 10
+	shift := (pin % 10) * 3
 	switch direction {
 	case IN:
 		gpio.mem[fsel] = gpio.mem[fsel] &^ (gpioPinMask << shift)
 	case OUT:
 		gpio.mem[fsel] = (gpio.mem[fsel] &^ (gpioPinMask << shift)) | (1 << shift)
 	default:
-		errString := fmt.Sprintf("Unknown channel direction: %d", direction)
+		errString := fmt.Sprintf("Unknown pin direction: %d", direction)
 		err = errors.New(errString)
 	}
 	return
 }
 
-// Pull sets or clears the internal pull up/down resistor for a GPIO channel
-func (gpio *RpiGpio) Pull(channel uint8, direction Pull) error {
-	clkRegister := (channel / 32) + pullUpDownClkOffset
-	shift := channel % 32
+// Pull sets or clears the internal pull up/down resistor for a GPIO pin
+func (gpio *RpiGpio) Pull(pin uint8, direction Pull) error {
+	clkRegister := (pin / 32) + pullUpDownClkOffset
+	shift := pin % 32
 
 	if err := gpio.setPull(direction); err != nil {
 		return err
@@ -86,20 +86,20 @@ func (gpio *RpiGpio) Pull(channel uint8, direction Pull) error {
 	return nil
 }
 
-// Read value from channel
-func (gpio *RpiGpio) Read(channel uint8) ChannelState {
-	pinLevelRegister := (channel / 32) + pinLevelOffset
-	shift := channel % 32
+// Read value from pin
+func (gpio *RpiGpio) Read(pin uint8) PinState {
+	pinLevelRegister := (pin / 32) + pinLevelOffset
+	shift := pin % 32
 	if gpio.mem[pinLevelRegister]&(1<<shift) != 0 {
 		return HIGH
 	}
 	return LOW
 }
 
-// Write value (0/1) to channel
-func (gpio *RpiGpio) Write(channel uint8, state ChannelState) error {
-	reg := channel / 32
-	shift := channel % 32
+// Write value (0/1) to pin
+func (gpio *RpiGpio) Write(pin uint8, state PinState) error {
+	reg := pin / 32
+	shift := pin % 32
 	gpio.lock.Lock()
 
 	if state == HIGH {
@@ -107,7 +107,7 @@ func (gpio *RpiGpio) Write(channel uint8, state ChannelState) error {
 	} else if state == LOW {
 		reg += clearOffset
 	} else {
-		err := fmt.Sprintf("Unknown channel state: %d", state)
+		err := fmt.Sprintf("Unknown pin state: %d", state)
 		return errors.New(err)
 	}
 	gpio.mem[reg] = 1 << shift
@@ -115,15 +115,15 @@ func (gpio *RpiGpio) Write(channel uint8, state ChannelState) error {
 	return nil
 }
 
-// Cleanup the channel ; reset to INPUT and pull up/down to off
-func (gpio *RpiGpio) Cleanup(channel uint8) {
-	// Verify channel is valid, package status is OK, etc
-	// get gpio number from channel
+// Cleanup the pin ; reset to INPUT and pull up/down to off
+func (gpio *RpiGpio) Cleanup(pin uint8) {
+	// Verify pin is valid, package status is OK, etc
+	// get gpio number from pin
 	// call c_gpio::cleanup_one()
 	//    * call event_cleanup()
 	//    * set gpio_direction = -1
 	//    * set gpio to INPUT and pull up/down to off
-	//    * set found for error checking later on (if working on > 1 channel at a time)
+	//    * set found for error checking later on (if working on > 1 pin at a time)
 
 }
 

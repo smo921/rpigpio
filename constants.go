@@ -36,9 +36,9 @@ const (
 	ALT5               = 2
 )
 
-// Enumerate possible channel states
+// Enumerate possible pin states
 const (
-	LOW ChannelState = iota
+	LOW PinState = iota
 	HIGH
 )
 
