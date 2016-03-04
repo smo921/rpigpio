@@ -26,6 +26,7 @@ type Status uint8
 // bcmGpio holds data for interacting with the BCM283x SoC
 type bcmGpio struct {
 	lock sync.Mutex
+	max  Pin
 	mem  []uint32
 	mem8 []uint8
 }

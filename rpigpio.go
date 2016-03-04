@@ -14,9 +14,10 @@ var piPinToBCMPinRev2 = [27]int8{
 func (gpio *RpiGpio) getBCMGpio(pin Pin) (Pin, error) {
 	if gpio.mode == GPIO {
 		return pin, nil
-	}
-	if gpio.pinToBCMPin[pin] == -1 {
-		return 0, fmt.Errorf("Pin %d not available for GPIO", pin)
+	} else if gpio.mode == PI && int(pin) > len(gpio.pinToBCMPin) {
+		return 255, fmt.Errorf("Pin %d must be < %d", pin, len(gpio.pinToBCMPin))
+	} else if gpio.pinToBCMPin[pin] == -1 {
+		return 255, fmt.Errorf("Pin %d not valid for GPIO", pin)
 	}
 	return Pin(gpio.pinToBCMPin[pin]), nil
 }
@@ -25,7 +26,7 @@ func (gpio *RpiGpio) getBCMGpio(pin Pin) (Pin, error) {
 func NewGPIO() (*RpiGpio, error) {
 	var err error
 	gpio := new(RpiGpio)
-	gpio.bcm = new(bcmGpio)
+	gpio.bcm = NewBCMGPIO()
 	gpio.mode = GPIO
 	gpio.status = NEW
 	gpio.rpi = new(RpiInfo)
@@ -57,7 +58,10 @@ func (gpio *RpiGpio) Mode(m Mode) error {
 
 func (gpio *RpiGpio) Read(p Pin) (PinState, error) {
 	pin, err := gpio.getBCMGpio(p)
-	return gpio.bcm.Read(pin), err
+	if err != nil {
+		return 255, err
+	}
+	return gpio.bcm.Read(pin), nil
 }
 
 // Cleanup the pin ; reset to INPUT and pull up/down to off

@@ -18,7 +18,6 @@ func TestMode(t *testing.T) {
 	if err := gpio.Mode(255); err == nil {
 		t.Error("Set rpigpio mode 255 passed")
 	}
-
 }
 
 func TestGetBCMGpio(t *testing.T) {
@@ -31,10 +30,10 @@ func TestGetBCMGpio(t *testing.T) {
 	}
 	pin, err := gpio.getBCMGpio(3)
 	if pin != 2 {
-		t.Error("Pin 3 should return BCM gpio 2")
+		t.Error("Pin 3 should return GPIO2:", err)
 	}
 	pin, err = gpio.getBCMGpio(16)
 	if pin != 23 {
-		t.Error("Pin 16 should return BCM gpio 23")
+		t.Error("Pin 16 should return GPIO23:", err)
 	}
 }

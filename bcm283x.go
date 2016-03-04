@@ -9,6 +9,13 @@ import (
 	"unsafe"
 )
 
+// NewBCMGPIO creates a bcmGpio data structure
+func NewBCMGPIO() *bcmGpio {
+	bcm := new(bcmGpio)
+	bcm.max = 53 // never have pin value > max
+	return bcm
+}
+
 // Close cleans up the bcmGpio resources
 func (gpio *bcmGpio) Close() error {
 	//event_cleanup_all()???  When we implement an event handler??
