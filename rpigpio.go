@@ -47,6 +47,15 @@ func NewGPIO() (*RpiGpio, error) {
 	return gpio, nil
 }
 
+// Direction sets the pin as either input or output
+func (gpio *RpiGpio) Direction(p Pin, d PinDirection) error {
+	pin, err := gpio.getBCMGpio(p)
+	if err != nil {
+		return err
+	}
+	return gpio.bcm.Direction(pin, d)
+}
+
 // Mode sets the pin interpretation for the rpigpio functions
 func (gpio *RpiGpio) Mode(m Mode) error {
 	if m != GPIO && m != PI {
