@@ -2,6 +2,12 @@ package rpigpio
 
 import "sync"
 
+// Mode pi or bcm
+type Mode uint8
+
+// Pin is a gpio or pi header pin number
+type Pin uint8
+
 // PinFunction represents the BCM2835 function of a channel
 type PinFunction uint8
 
@@ -27,7 +33,8 @@ type bcmGpio struct {
 // RpiGpio holds all data for a RPi GPIO implementation
 type RpiGpio struct {
 	bcm         *bcmGpio
-	pinToBCMPin [27]int
+	pinToBCMPin [27]int8
+	mode        Mode
 	rpi         *RpiInfo
 	status      Status
 }

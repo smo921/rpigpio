@@ -18,6 +18,12 @@ const (
 	gpioPinMask = 7
 )
 
+// How pin numbers are interpreted (pi header vs bcm gpio)
+const (
+	GPIO Mode = iota
+	PI
+)
+
 // Enumerate avaialable channel directions
 const (
 	IN  PinDirection = PinDirection(INPUT)

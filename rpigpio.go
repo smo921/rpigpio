@@ -5,17 +5,20 @@ import (
 	"fmt"
 )
 
-var piPinToBCMPinRev2 = [27]int{
+var piPinToBCMPinRev2 = [27]int8{
 	-1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1,
 	22, 23, -1, 24, 10, -1, 9, 25, 11, 8, -1, 7,
 }
 
 // Deteriming GPIO number
-func (gpio *RpiGpio) getBCMGpio(pin int) (uint, error) {
+func (gpio *RpiGpio) getBCMGpio(pin Pin) (Pin, error) {
+	if gpio.mode == GPIO {
+		return pin, nil
+	}
 	if gpio.pinToBCMPin[pin] == -1 {
 		return 0, fmt.Errorf("Pin %d not available for GPIO", pin)
 	}
-	return uint(gpio.pinToBCMPin[pin]), nil
+	return Pin(gpio.pinToBCMPin[pin]), nil
 }
 
 // NewGPIO sets up a new GPIO object
@@ -23,6 +26,7 @@ func NewGPIO() (*RpiGpio, error) {
 	var err error
 	gpio := new(RpiGpio)
 	gpio.bcm = new(bcmGpio)
+	gpio.mode = GPIO
 	gpio.status = NEW
 	gpio.rpi = new(RpiInfo)
 	gpio.rpi.GetCPUInfo()
@@ -40,6 +44,20 @@ func NewGPIO() (*RpiGpio, error) {
 	}
 	gpio.status = OK
 	return gpio, nil
+}
+
+// Mode sets the pin interpretation for the rpigpio functions
+func (gpio *RpiGpio) Mode(m Mode) error {
+	if m != GPIO && m != PI {
+		return fmt.Errorf("Mode must be GPIO or PI")
+	}
+	gpio.mode = m
+	return nil
+}
+
+func (gpio *RpiGpio) Read(p Pin) (PinState, error) {
+	pin, err := gpio.getBCMGpio(p)
+	return gpio.bcm.Read(pin), err
 }
 
 // Cleanup the pin ; reset to INPUT and pull up/down to off

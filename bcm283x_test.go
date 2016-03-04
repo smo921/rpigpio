@@ -95,7 +95,7 @@ func TestPull(t *testing.T) {
 
 func TestRead(t *testing.T) {
 	gpio := bcmGpioTestInit()
-	var c uint8
+	var c Pin
 	for c = 0; c < 54; c++ {
 		register := (c / 32) + pinLevelOffset
 		shift := c % 32

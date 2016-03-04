@@ -54,7 +54,7 @@ func (gpio *bcmGpio) Pull(pin uint8, direction Pull) error {
 }
 
 // Read value from pin
-func (gpio *bcmGpio) Read(pin uint8) PinState {
+func (gpio *bcmGpio) Read(pin Pin) PinState {
 	pinLevelRegister := (pin / 32) + pinLevelOffset
 	shift := pin % 32
 	if gpio.mem[pinLevelRegister]&(1<<shift) != 0 {
