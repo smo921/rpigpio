@@ -53,7 +53,7 @@ func TestMmapFile(t *testing.T) {
 
 func TestDirection(t *testing.T) {
 	gpio := bcmGpioTestInit()
-	var c Pin
+	var p Pin
 	initRegisterValues := [5]uint32{
 		0x00000000,
 		0xFFFFFFFF,
@@ -61,11 +61,11 @@ func TestDirection(t *testing.T) {
 		0xFFFF0000,
 		0x0000FFFF,
 	}
-	for c = 0; c < 54; c++ {
-		fsel := c / 10
+	for p = 0; p < 54; p++ {
+		fsel := p / 10
 		for x := range initRegisterValues {
 			gpio.mem[fsel] = initRegisterValues[x]
-			err := testPinDirection(gpio, c)
+			err := testPinDirection(gpio, p)
 			if err != nil {
 				t.Error(fmt.Errorf("Init Register Value: %08X ; %s", initRegisterValues[x], err))
 			}
@@ -95,19 +95,19 @@ func TestPull(t *testing.T) {
 
 func TestRead(t *testing.T) {
 	gpio := bcmGpioTestInit()
-	var c Pin
-	for c = 0; c < 54; c++ {
-		register := (c / 32) + pinLevelOffset
-		shift := c % 32
+	var p Pin
+	for p = 0; p < 54; p++ {
+		register := (p / 32) + pinLevelOffset
+		shift := p % 32
 		// Set pin to HIGH
 		gpio.mem[register] |= (1 << shift)
-		val := gpio.Read(c)
+		val := gpio.Read(p)
 		if val != HIGH {
 			t.Error("Expected pin to be HIGH")
 		}
 		// clear all bits for pin ; ie set pin to LOW
 		gpio.mem[register] &^= (gpioPinMask << shift)
-		val = gpio.Read(c)
+		val = gpio.Read(p)
 		if val != LOW {
 			t.Error("Expected pin to be LOW")
 		}
@@ -126,21 +126,21 @@ func TestShortWait(t *testing.T) {
 
 func TestWrite(t *testing.T) {
 	gpio := bcmGpioTestInit()
-	var c Pin
-	for c = 0; c < 54; c++ {
-		setRegister := (c / 32) + setOffset
-		clearRegister := (c / 32) + clearOffset
-		shift := c % 32
+	var p Pin
+	for p = 0; p < 54; p++ {
+		setRegister := (p / 32) + setOffset
+		clearRegister := (p / 32) + clearOffset
+		shift := p % 32
 
 		gpio.mem[clearRegister] = 0
-		gpio.Write(c, LOW)
+		gpio.Write(p, LOW)
 		val := gpio.mem[clearRegister]
 		if val != (1 << shift) {
 			t.Error("Expected pin to be LOW")
 		}
 
 		gpio.mem[setRegister] = 0
-		gpio.Write(c, HIGH)
+		gpio.Write(p, HIGH)
 		val = gpio.mem[setRegister]
 		if val != (1 << shift) {
 			t.Error("Expected pin to be HIGH")
@@ -148,24 +148,24 @@ func TestWrite(t *testing.T) {
 	}
 }
 
-func testPinDirection(gpio *bcmGpio, c Pin) (err error) {
+func testPinDirection(gpio *bcmGpio, p Pin) (err error) {
 	var mask uint32
 	var val uint32
 
-	fsel := c / 10
-	shift := (c % 10) * 3
+	fsel := p / 10
+	shift := (p % 10) * 3
 	mask = (gpioPinMask << shift)
 
-	gpio.Direction(c, IN)
+	gpio.Direction(p, IN)
 	val = gpio.mem[fsel] & mask
 	if val != uint32(IN) {
-		err = fmt.Errorf("Failed to set pin %d to input", c)
+		err = fmt.Errorf("Failed to set pin %d to input", p)
 	}
 
-	gpio.Direction(c, OUT)
+	gpio.Direction(p, OUT)
 	val = (gpio.mem[fsel] & mask) >> shift
 	if val != uint32(OUT) {
-		err = fmt.Errorf("Failed to set pin %d to output", c)
+		err = fmt.Errorf("Failed to set pin %d to output", p)
 	}
 	return
 }
