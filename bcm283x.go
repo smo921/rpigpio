@@ -25,7 +25,7 @@ func (gpio *bcmGpio) Close() error {
 }
 
 // Direction configures the direction (IN/OUT) of the pin
-func (gpio *bcmGpio) Direction(pin uint8, direction PinDirection) (err error) {
+func (gpio *bcmGpio) Direction(pin Pin, direction PinDirection) (err error) {
 	// Check package status is OK
 	// do some error checking ; verify pin and direction are valid, etc
 	// call c_gpio::setup_one()
@@ -44,7 +44,7 @@ func (gpio *bcmGpio) Direction(pin uint8, direction PinDirection) (err error) {
 }
 
 // Pull sets or clears the internal pull up/down resistor for a GPIO pin
-func (gpio *bcmGpio) Pull(pin uint8, direction Pull) error {
+func (gpio *bcmGpio) Pull(pin Pin, direction Pull) error {
 	clkRegister := (pin / 32) + pullUpDownClkOffset
 	shift := pin % 32
 
@@ -71,7 +71,7 @@ func (gpio *bcmGpio) Read(pin Pin) PinState {
 }
 
 // Write value (0/1) to pin
-func (gpio *bcmGpio) Write(pin uint8, state PinState) error {
+func (gpio *bcmGpio) Write(pin Pin, state PinState) error {
 	reg := pin / 32
 	shift := pin % 32
 	gpio.lock.Lock()

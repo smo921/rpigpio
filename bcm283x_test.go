@@ -53,7 +53,7 @@ func TestMmapFile(t *testing.T) {
 
 func TestDirection(t *testing.T) {
 	gpio := bcmGpioTestInit()
-	var c uint8
+	var c Pin
 	initRegisterValues := [5]uint32{
 		0x00000000,
 		0xFFFFFFFF,
@@ -126,7 +126,7 @@ func TestShortWait(t *testing.T) {
 
 func TestWrite(t *testing.T) {
 	gpio := bcmGpioTestInit()
-	var c uint8
+	var c Pin
 	for c = 0; c < 54; c++ {
 		setRegister := (c / 32) + setOffset
 		clearRegister := (c / 32) + clearOffset
@@ -148,7 +148,7 @@ func TestWrite(t *testing.T) {
 	}
 }
 
-func testPinDirection(gpio *bcmGpio, c uint8) (err error) {
+func testPinDirection(gpio *bcmGpio, c Pin) (err error) {
 	var mask uint32
 	var val uint32
 

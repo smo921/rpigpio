@@ -56,12 +56,30 @@ func (gpio *RpiGpio) Mode(m Mode) error {
 	return nil
 }
 
+// Pull sets the direction of the built-in pull-up/pull-down resistor
+func (gpio *RpiGpio) Pull(p Pin, d Pull) error {
+	pin, err := gpio.getBCMGpio(p)
+	if err != nil {
+		return err
+	}
+	return gpio.bcm.Pull(pin, d)
+}
+
 func (gpio *RpiGpio) Read(p Pin) (PinState, error) {
 	pin, err := gpio.getBCMGpio(p)
 	if err != nil {
 		return 255, err
 	}
 	return gpio.bcm.Read(pin), nil
+}
+
+func (gpio *RpiGpio) Write(p Pin, s PinState) error {
+	pin, err := gpio.getBCMGpio(p)
+	if err != nil {
+		return err
+	}
+	gpio.bcm.Write(pin, s)
+	return nil
 }
 
 // Cleanup the pin ; reset to INPUT and pull up/down to off
