@@ -3,128 +3,43 @@ package rpigpio
 import (
 	"errors"
 	"fmt"
-	"os"
-	"reflect"
-	"sync"
-	"syscall"
-	"unsafe"
 )
 
-// PinFunction represents the BCM2835 function of a channel
-type PinFunction uint8
-
-// PinDirection represents the direction (IN/OUT) of a channel
-type PinDirection PinFunction
-
-// ChannelState represents the state of an output channel: high/low
-type ChannelState uint8
-
-// Pull up/down/off
-type Pull uint8
-
-// Status represents the status of the RpiGpio package
-type Status uint8
-
-const (
-	// Only needed if we want to mmap /dev/mem
-	bcm2835Base    = 0x20000000
-	gpioBaseOffset = 0x200000
-	piGPIOBase     = bcm2835Base + gpioBaseOffset
-	bcm2835Max     = 0x20FFFFFF
-	// ^^ can be removed if we do not want to support /dev/mem
-	fselOffset          = 0
-	setOffset           = 7
-	clearOffset         = 10
-	pinLevelOffset      = 13
-	pullUpDownOffset    = 37
-	pullUpDownClkOffset = 38
-
-	memLength   = 4096
-	gpioPinMask = 7
-)
-
-// Enumerate avaialable channel directions
-const (
-	IN  PinDirection = PinDirection(INPUT)
-	OUT PinDirection = PinDirection(OUTPUT)
-)
-
-// Enumerate avaialable channel functions
-const (
-	INPUT  PinFunction = 0
-	OUTPUT             = 1
-	ALT0               = 4
-	ALT1               = 5
-	ALT2               = 6
-	ALT3               = 7
-	ALT4               = 3
-	ALT5               = 2
-)
-
-// Enumerate possible channel states
-const (
-	LOW ChannelState = iota
-	HIGH
-)
-
-// Pull up/down/off
-const (
-	PULLOFF Pull = iota
-	PULLDOWN
-	PULLUP
-)
-
-// Status of the RpiGpio package
-const (
-	NEW Status = iota
-	OK
-	ERR
-)
-
-// RpiGpio holds all data for a RPi GPIO implementation
-type RpiGpio struct {
-	lock         sync.Mutex
-	mem          []uint32
-	mem8         []uint8
-	pinToChannel [27]int
-	rpi          *RpiInfo
-	status       Status
-}
-
-var pinToGpioChannelRev2 = [27]int{
+var piPinToBCMPinRev2 = [27]int8{
 	-1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1,
 	22, 23, -1, 24, 10, -1, 9, 25, 11, 8, -1, 7,
 }
 
 // Deteriming GPIO number
-func getGpioNumber(channel int) (uint, error) {
-	return 0, nil
-}
-
-// Close cleans up the RpiGpio resources
-func (gpio *RpiGpio) Close() error {
-	//event_cleanup_all()???  When we implement an event handler??
-	gpio.lock.Lock()
-	defer gpio.lock.Unlock()
-	return syscall.Munmap(gpio.mem8)
+func (gpio *RpiGpio) getBCMGpio(pin Pin) (Pin, error) {
+	if gpio.mode == GPIO {
+		return pin, nil
+	} else if gpio.mode == PI && int(pin) > len(gpio.pinToBCMPin) {
+		return 255, fmt.Errorf("Pin %d must be < %d", pin, len(gpio.pinToBCMPin))
+	} else if gpio.pinToBCMPin[pin] == -1 {
+		return 255, fmt.Errorf("Pin %d not valid for GPIO", pin)
+	}
+	return Pin(gpio.pinToBCMPin[pin]), nil
 }
 
 // NewGPIO sets up a new GPIO object
 func NewGPIO() (*RpiGpio, error) {
 	var err error
 	gpio := new(RpiGpio)
+	gpio.bcm = NewBCMGPIO()
+	gpio.mode = GPIO
 	gpio.status = NEW
 	gpio.rpi = new(RpiInfo)
 	gpio.rpi.GetCPUInfo()
 	switch int(gpio.rpi.piRevision) {
 	case 2:
-		gpio.pinToChannel = pinToGpioChannelRev2
+		gpio.pinToBCMPin = piPinToBCMPinRev2
 	default:
 		return nil, errors.New("Unknown Raspberry Pi hardware")
 	}
 	// set gpio "direction"  (in/out??)
-	// pinToChannel = pinToGpioChannelRev??
-	err = gpio.openGPIO()
+	// pinTopin = pinToGpiopinRev??
+	err = gpio.bcm.open()
 	if err != nil {
 		return nil, err
 	}
@@ -132,132 +47,62 @@ func NewGPIO() (*RpiGpio, error) {
 	return gpio, nil
 }
 
-// Direction configures the direction (IN/OUT) of the channel
-func (gpio *RpiGpio) Direction(channel uint8, direction PinDirection) (err error) {
-	// Check package status is OK
-	// do some error checking ; verify channel and direction are valid, etc
-	// call c_gpio::setup_one()
-	fsel := channel / 10
-	shift := (channel % 10) * 3
-	switch direction {
-	case IN:
-		gpio.mem[fsel] = gpio.mem[fsel] &^ (gpioPinMask << shift)
-	case OUT:
-		gpio.mem[fsel] = (gpio.mem[fsel] &^ (gpioPinMask << shift)) | (1 << shift)
-	default:
-		errString := fmt.Sprintf("Unknown channel direction: %d", direction)
-		err = errors.New(errString)
-	}
-	return
-}
-
-// Pull sets or clears the internal pull up/down resistor for a GPIO channel
-func (gpio *RpiGpio) Pull(channel uint8, direction Pull) error {
-	clkRegister := (channel / 32) + pullUpDownClkOffset
-	shift := channel % 32
-
-	if err := gpio.setPull(direction); err != nil {
+// Direction sets the pin as either input or output
+func (gpio *RpiGpio) Direction(p Pin, d PinDirection) error {
+	pin, err := gpio.getBCMGpio(p)
+	if err != nil {
 		return err
 	}
+	return gpio.bcm.Direction(pin, d)
+}
 
-	shortWait(150)
-	gpio.mem[clkRegister] = 1 << shift
-	shortWait(150)
-	gpio.mem[pullUpDownOffset] &^= 3
-	gpio.mem[clkRegister] = 0
+// Mode sets the pin interpretation for the rpigpio functions
+func (gpio *RpiGpio) Mode(m Mode) error {
+	if m != GPIO && m != PI {
+		return fmt.Errorf("Mode must be GPIO or PI")
+	}
+	gpio.mode = m
 	return nil
 }
 
-// Read value from channel
-func (gpio *RpiGpio) Read(channel uint8) ChannelState {
-	pinLevelRegister := (channel / 32) + pinLevelOffset
-	shift := channel % 32
-	if gpio.mem[pinLevelRegister]&(1<<shift) != 0 {
-		return HIGH
+// Pull sets the direction of the built-in pull-up/pull-down resistor
+func (gpio *RpiGpio) Pull(p Pin, d Pull) error {
+	pin, err := gpio.getBCMGpio(p)
+	if err != nil {
+		return err
 	}
-	return LOW
+	return gpio.bcm.Pull(pin, d)
 }
 
-// Write value (0/1) to channel
-func (gpio *RpiGpio) Write(channel uint8, state ChannelState) error {
-	reg := channel / 32
-	shift := channel % 32
-	gpio.lock.Lock()
-
-	if state == HIGH {
-		reg += setOffset
-	} else if state == LOW {
-		reg += clearOffset
-	} else {
-		err := fmt.Sprintf("Unknown channel state: %d", state)
-		return errors.New(err)
+func (gpio *RpiGpio) Read(p Pin) (PinState, error) {
+	pin, err := gpio.getBCMGpio(p)
+	if err != nil {
+		return 255, err
 	}
-	gpio.mem[reg] = 1 << shift
-	gpio.lock.Unlock()
+	return gpio.bcm.Read(pin), nil
+}
+
+func (gpio *RpiGpio) Write(p Pin, s PinState) error {
+	pin, err := gpio.getBCMGpio(p)
+	if err != nil {
+		return err
+	}
+	gpio.bcm.Write(pin, s)
 	return nil
 }
 
-// Cleanup the channel ; reset to INPUT and pull up/down to off
-func (gpio *RpiGpio) Cleanup(channel uint8) {
-	// Verify channel is valid, package status is OK, etc
-	// get gpio number from channel
+// Cleanup the pin ; reset to INPUT and pull up/down to off
+func (gpio *RpiGpio) Cleanup(pin uint8) {
+	// Verify pin is valid, package status is OK, etc
+	// get gpio number from pin
 	// call c_gpio::cleanup_one()
 	//    * call event_cleanup()
 	//    * set gpio_direction = -1
 	//    * set gpio to INPUT and pull up/down to off
-	//    * set found for error checking later on (if working on > 1 channel at a time)
-
+	//    * set found for error checking later on (if working on > 1 pin at a time)
 }
 
 // eventCleanup
 func eventCleanup(gpio uint) {
 	// event_gpio.c:403
 }
-
-func (gpio *RpiGpio) openGPIO() (err error) {
-	file, err := os.OpenFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC, 0666)
-	if err != nil {
-		fmt.Println("Error opening /dev/gpiomem: ", err)
-		return
-	}
-	defer file.Close()
-	return gpio.mmapFile(file)
-}
-
-func (gpio *RpiGpio) mmapFile(f *os.File) (err error) {
-	gpio.lock.Lock()
-	defer gpio.lock.Unlock()
-	// Memory map GPIO registers to byte array
-	gpio.mem8, err = syscall.Mmap(
-		int(f.Fd()),
-		0,
-		memLength,
-		syscall.PROT_READ|syscall.PROT_WRITE,
-		syscall.MAP_SHARED)
-	if err != nil {
-		return
-	}
-
-	// Convert 8-bit slice to 32-bit slice
-	header := *(*reflect.SliceHeader)(unsafe.Pointer(&gpio.mem8))
-	header.Len /= 4
-	header.Cap /= 4
-	gpio.mem = *(*[]uint32)(unsafe.Pointer(&header))
-	return nil
-}
-
-func (gpio *RpiGpio) setPull(d Pull) error {
-	switch d {
-	case PULLOFF:
-		gpio.mem[pullUpDownOffset] &^= 3
-	case PULLDOWN, PULLUP:
-		gpio.mem[pullUpDownOffset] = (gpio.mem[pullUpDownOffset] &^ 3) | uint32(d)
-	default:
-		errString := fmt.Sprintf("Unknown pull direction: %d", d)
-		return errors.New(errString)
-	}
-	return nil
-}
-
-// run cnt nop operations
-func shortWait(cnt uint32)
