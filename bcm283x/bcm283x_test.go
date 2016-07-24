@@ -1,4 +1,4 @@
-package rpigpio
+package bcm283x
 
 import (
 	"fmt"

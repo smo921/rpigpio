@@ -1,4 +1,6 @@
-package rpigpio
+package bcm283x
+
+import "github.com/smo921/rpigpio/gpio"
 
 const (
 	// Only needed if we want to mmap /dev/mem
@@ -18,46 +20,33 @@ const (
 	gpioPinMask = 7
 )
 
-// How pin numbers are interpreted (pi header vs bcm gpio)
-const (
-	GPIO Mode = iota
-	PI
-)
-
 // Enumerate avaialable channel directions
 const (
-	IN  PinDirection = PinDirection(INPUT)
-	OUT PinDirection = PinDirection(OUTPUT)
+	IN  gpio.PinDirection = gpio.PinDirection(INPUT)
+	OUT gpio.PinDirection = gpio.PinDirection(OUTPUT)
 )
 
 // Enumerate avaialable channel functions
 const (
-	INPUT  PinFunction = 0
-	OUTPUT             = 1
-	ALT0               = 4
-	ALT1               = 5
-	ALT2               = 6
-	ALT3               = 7
-	ALT4               = 3
-	ALT5               = 2
+	INPUT  gpio.PinFunction = 0
+	OUTPUT                  = 1
+	ALT0                    = 4
+	ALT1                    = 5
+	ALT2                    = 6
+	ALT3                    = 7
+	ALT4                    = 3
+	ALT5                    = 2
 )
 
 // Enumerate possible pin states
 const (
-	LOW PinState = iota
+	LOW gpio.PinState = iota
 	HIGH
 )
 
 // Pull up/down/off
 const (
-	PULLOFF Pull = iota
+	PULLOFF gpio.Pull = iota
 	PULLDOWN
 	PULLUP
-)
-
-// Status of the RpiGpio package
-const (
-	NEW Status = iota
-	OK
-	ERR
 )

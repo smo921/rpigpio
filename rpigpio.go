@@ -3,6 +3,9 @@ package rpigpio
 import (
 	"errors"
 	"fmt"
+
+	"github.com/smo921/rpigpio/bcm283x"
+	"github.com/smo921/rpigpio/gpio"
 )
 
 var piPinToBCMPinRev2 = [27]int8{
@@ -11,88 +14,90 @@ var piPinToBCMPinRev2 = [27]int8{
 }
 
 // Deteriming GPIO number
-func (gpio *RpiGpio) getBCMGpio(pin Pin) (Pin, error) {
-	if gpio.mode == GPIO {
+func (rpi *RpiGpio) getBCMGpio(pin gpio.Pin) (gpio.Pin, error) {
+	if rpi.mode == GPIO {
 		return pin, nil
-	} else if gpio.mode == PI && int(pin) > len(gpio.pinToBCMPin) {
-		return 255, fmt.Errorf("Pin %d must be < %d", pin, len(gpio.pinToBCMPin))
-	} else if gpio.pinToBCMPin[pin] == -1 {
+	} else if rpi.mode == PI && int(pin) > len(rpi.pinToBCMPin) {
+		return 255, fmt.Errorf("Pin %d must be < %d", pin, len(rpi.pinToBCMPin))
+	} else if rpi.pinToBCMPin[pin] == -1 {
 		return 255, fmt.Errorf("Pin %d not valid for GPIO", pin)
 	}
-	return Pin(gpio.pinToBCMPin[pin]), nil
+	return gpio.Pin(rpi.pinToBCMPin[pin]), nil
 }
 
 // NewGPIO sets up a new GPIO object
 func NewGPIO() (*RpiGpio, error) {
 	var err error
-	gpio := new(RpiGpio)
-	gpio.bcm = NewBCMGPIO()
-	gpio.mode = GPIO
-	gpio.status = NEW
-	gpio.rpi = new(RpiInfo)
-	gpio.rpi.GetCPUInfo()
-	switch int(gpio.rpi.piRevision) {
+	rpi := new(RpiGpio)
+	rpi.bcm, err = bcm283x.New()
+	if err != nil {
+		return nil, err
+	}
+	rpi.mode = GPIO
+	rpi.status = NEW
+	rpi.info = new(RpiInfo)
+	err = rpi.info.GetCPUInfo()
+	if err != nil {
+		return nil, err
+	}
+	switch int(rpi.info.piRevision) {
 	case 2:
-		gpio.pinToBCMPin = piPinToBCMPinRev2
+		rpi.pinToBCMPin = piPinToBCMPinRev2
 	default:
 		return nil, errors.New("Unknown Raspberry Pi hardware")
 	}
 	// set gpio "direction"  (in/out??)
 	// pinTopin = pinToGpiopinRev??
-	err = gpio.bcm.open()
-	if err != nil {
-		return nil, err
-	}
-	gpio.status = OK
-	return gpio, nil
+	rpi.status = OK
+	return rpi, nil
 }
 
 // Direction sets the pin as either input or output
-func (gpio *RpiGpio) Direction(p Pin, d PinDirection) error {
-	pin, err := gpio.getBCMGpio(p)
+func (rpi *RpiGpio) Direction(p gpio.Pin, d gpio.PinDirection) error {
+	pin, err := rpi.getBCMGpio(p)
 	if err != nil {
 		return err
 	}
-	return gpio.bcm.Direction(pin, d)
+	return rpi.bcm.Direction(pin, d)
 }
 
 // Mode sets the pin interpretation for the rpigpio functions
-func (gpio *RpiGpio) Mode(m Mode) error {
+func (rpi *RpiGpio) Mode(m Mode) error {
 	if m != GPIO && m != PI {
 		return fmt.Errorf("Mode must be GPIO or PI")
 	}
-	gpio.mode = m
+	rpi.mode = m
 	return nil
 }
 
 // Pull sets the direction of the built-in pull-up/pull-down resistor
-func (gpio *RpiGpio) Pull(p Pin, d Pull) error {
-	pin, err := gpio.getBCMGpio(p)
+func (rpi *RpiGpio) Pull(p gpio.Pin, d gpio.Pull) error {
+	pin, err := rpi.getBCMGpio(p)
 	if err != nil {
 		return err
 	}
-	return gpio.bcm.Pull(pin, d)
+	return rpi.bcm.Pull(pin, d)
 }
 
-func (gpio *RpiGpio) Read(p Pin) (PinState, error) {
-	pin, err := gpio.getBCMGpio(p)
+func (rpi *RpiGpio) Read(p gpio.Pin) (gpio.PinState, error) {
+	pin, err := rpi.getBCMGpio(p)
 	if err != nil {
 		return 255, err
 	}
-	return gpio.bcm.Read(pin), nil
+	return rpi.bcm.Read(pin), nil
 }
 
-func (gpio *RpiGpio) Write(p Pin, s PinState) error {
-	pin, err := gpio.getBCMGpio(p)
+func (rpi *RpiGpio) Write(p gpio.Pin, s gpio.PinState) error {
+	pin, err := rpi.getBCMGpio(p)
 	if err != nil {
 		return err
 	}
-	gpio.bcm.Write(pin, s)
+	rpi.bcm.Write(pin, s)
 	return nil
 }
 
 // Cleanup the pin ; reset to INPUT and pull up/down to off
-func (gpio *RpiGpio) Cleanup(pin uint8) {
+func (rpi *RpiGpio) Cleanup(pin uint8) {
 	// Verify pin is valid, package status is OK, etc
 	// get gpio number from pin
 	// call c_gpio::cleanup_one()
