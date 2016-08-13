@@ -8,6 +8,18 @@ import (
 	"github.com/smo921/rpigpio/gpio"
 )
 
+const (
+	IN  gpio.PinDirection = gpio.PinDirection(bcm283x.INPUT)
+	OUT gpio.PinDirection = gpio.PinDirection(bcm283x.OUTPUT)
+)
+
+// Pull up/down/off
+const (
+	PULLOFF  gpio.Pull = 0x00
+	PULLDOWN gpio.Pull = 0x01
+	PULLUP   gpio.Pull = 0x10
+)
+
 var piPinToBCMPinRev2 = [27]int8{
 	-1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1,
 	22, 23, -1, 24, 10, -1, 9, 25, 11, 8, -1, 7,

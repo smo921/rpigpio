@@ -5,21 +5,23 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/smo921/rpigpio/gpio"
 )
 
-func bcmGpioTestInit() *bcmGpio {
-	gpio := new(bcmGpio)
-	gpio.mem = make([]uint32, 54)
-	return gpio
+func bcmGpioTestInit() *BcmGpio {
+	bcm := new(BcmGpio)
+	bcm.mem = make([]uint32, 54)
+	return bcm
 }
 
 func TestMmapFile(t *testing.T) {
-	file, err := os.OpenFile("./test/gpiomem",
+	file, err := os.OpenFile("../test/gpiomem",
 		os.O_CREATE|os.O_TRUNC|os.O_RDWR|os.O_SYNC, 0666)
 	if err != nil {
 		t.Error(fmt.Errorf("Error opening ./test/gpiomem: %s", err))
 	}
-	defer os.Remove("./test/gpiomem")
+	defer os.Remove("../test/gpiomem")
 
 	// Initialize file to memLength bytes
 	var buf []byte
@@ -35,9 +37,9 @@ func TestMmapFile(t *testing.T) {
 	gpio.Close()
 	file.Close()
 
-	file, err = os.OpenFile("./test/gpiomem", os.O_RDWR|os.O_SYNC, 0666)
+	file, err = os.OpenFile("../test/gpiomem", os.O_RDWR|os.O_SYNC, 0666)
 	if err != nil {
-		t.Error(fmt.Errorf("Error opening ./test/gpiomem: %s", err))
+		t.Error(fmt.Errorf("Error opening ../test/gpiomem: %s", err))
 	}
 	defer file.Close()
 	defer gpio.Close() // close mmap before closing file
@@ -52,8 +54,8 @@ func TestMmapFile(t *testing.T) {
 }
 
 func TestDirection(t *testing.T) {
-	gpio := bcmGpioTestInit()
-	var p Pin
+	bcm := bcmGpioTestInit()
+	var p gpio.Pin
 	initRegisterValues := [5]uint32{
 		0x00000000,
 		0xFFFFFFFF,
@@ -64,8 +66,8 @@ func TestDirection(t *testing.T) {
 	for p = 0; p < 54; p++ {
 		fsel := p / 10
 		for x := range initRegisterValues {
-			gpio.mem[fsel] = initRegisterValues[x]
-			err := testPinDirection(gpio, p)
+			bcm.mem[fsel] = initRegisterValues[x]
+			err := testPinDirection(bcm, p)
 			if err != nil {
 				t.Error(fmt.Errorf("Init Register Value: %08X ; %s", initRegisterValues[x], err))
 			}
@@ -81,12 +83,14 @@ func TestPull(t *testing.T) {
 	}
 	err = gpio.setPull(PULLUP)
 	if gpio.mem[pullUpDownOffset] != uint32(PULLUP) || err != nil {
-		t.Error("setPull(DOWN) failed:", err)
+		t.Error("setPull(UP) failed:", err)
 	}
-	err = gpio.setPull(PULLOFF)
-	if gpio.mem[pullUpDownOffset] != uint32(PULLOFF) || err != nil {
-		t.Error("setPull(DOWN) failed:", err)
-	}
+	/*
+		err = gpio.setPull(PULLOFF)
+		if gpio.mem[pullUpDownOffset] != uint32(PULLOFF) || err != nil {
+			t.Error("setPull(OFF) failed:", err)
+		}
+	*/
 	err = gpio.setPull(5)
 	if err == nil {
 		t.Error("setPull(5) should return error:", err)
@@ -94,21 +98,21 @@ func TestPull(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	gpio := bcmGpioTestInit()
-	var p Pin
+	bcm := bcmGpioTestInit()
+	var p gpio.Pin
 	for p = 0; p < 54; p++ {
 		register := (p / 32) + pinLevelOffset
 		shift := p % 32
 		// Set pin to HIGH
-		gpio.mem[register] |= (1 << shift)
-		val := gpio.Read(p)
-		if val != HIGH {
+		bcm.mem[register] |= (1 << shift)
+		val := bcm.Read(p)
+		if val != gpio.HIGH {
 			t.Error("Expected pin to be HIGH")
 		}
 		// clear all bits for pin ; ie set pin to LOW
-		gpio.mem[register] &^= (gpioPinMask << shift)
-		val = gpio.Read(p)
-		if val != LOW {
+		bcm.mem[register] &^= (gpioPinMask << shift)
+		val = bcm.Read(p)
+		if val != gpio.LOW {
 			t.Error("Expected pin to be LOW")
 		}
 	}
@@ -125,30 +129,30 @@ func TestShortWait(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	gpio := bcmGpioTestInit()
-	var p Pin
+	bcm := bcmGpioTestInit()
+	var p gpio.Pin
 	for p = 0; p < 54; p++ {
 		setRegister := (p / 32) + setOffset
 		clearRegister := (p / 32) + clearOffset
 		shift := p % 32
 
-		gpio.mem[clearRegister] = 0
-		gpio.Write(p, LOW)
-		val := gpio.mem[clearRegister]
+		bcm.mem[clearRegister] = 0
+		bcm.Write(p, gpio.LOW)
+		val := bcm.mem[clearRegister]
 		if val != (1 << shift) {
 			t.Error("Expected pin to be LOW")
 		}
 
-		gpio.mem[setRegister] = 0
-		gpio.Write(p, HIGH)
-		val = gpio.mem[setRegister]
+		bcm.mem[setRegister] = 0
+		bcm.Write(p, gpio.HIGH)
+		val = bcm.mem[setRegister]
 		if val != (1 << shift) {
 			t.Error("Expected pin to be HIGH")
 		}
 	}
 }
 
-func testPinDirection(gpio *bcmGpio, p Pin) (err error) {
+func testPinDirection(bcm *BcmGpio, p gpio.Pin) (err error) {
 	var mask uint32
 	var val uint32
 
@@ -156,14 +160,14 @@ func testPinDirection(gpio *bcmGpio, p Pin) (err error) {
 	shift := (p % 10) * 3
 	mask = (gpioPinMask << shift)
 
-	gpio.Direction(p, IN)
-	val = gpio.mem[fsel] & mask
+	bcm.Direction(p, IN)
+	val = bcm.mem[fsel] & mask
 	if val != uint32(IN) {
 		err = fmt.Errorf("Failed to set pin %d to input", p)
 	}
 
-	gpio.Direction(p, OUT)
-	val = (gpio.mem[fsel] & mask) >> shift
+	bcm.Direction(p, OUT)
+	val = (bcm.mem[fsel] & mask) >> shift
 	if val != uint32(OUT) {
 		err = fmt.Errorf("Failed to set pin %d to output", p)
 	}

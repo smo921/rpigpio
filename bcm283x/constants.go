@@ -38,15 +38,9 @@ const (
 	ALT5                    = 2
 )
 
-// Enumerate possible pin states
-const (
-	LOW gpio.PinState = iota
-	HIGH
-)
-
 // Pull up/down/off
 const (
-	PULLOFF gpio.Pull = iota
-	PULLDOWN
-	PULLUP
+	PULLOFF  gpio.Pull = 0x00
+	PULLDOWN gpio.Pull = 0x01
+	PULLUP   gpio.Pull = 0x10
 )

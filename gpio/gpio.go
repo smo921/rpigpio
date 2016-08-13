@@ -14,3 +14,9 @@ type PinState uint8
 
 // Pull up/down/off
 type Pull uint8
+
+// Enumerate possible pin states
+const (
+	LOW  PinState = 0
+	HIGH PinState = 1
+)

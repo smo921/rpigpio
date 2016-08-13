@@ -5,30 +5,31 @@ import (
 	"time"
 
 	"github.com/smo921/rpigpio"
+	"github.com/smo921/rpigpio/gpio"
 )
 
 func main() {
-	gpio, _ := rpigpio.NewGPIO()
-	gpio.Direction(7, rpigpio.IN)
-	gpio.Direction(8, rpigpio.OUT)  // green
-	gpio.Direction(25, rpigpio.OUT) // red
-	gpio.Pull(7, rpigpio.PULLOFF)
+	pi, _ := rpigpio.NewGPIO()
+	pi.Direction(7, rpigpio.IN)
+	pi.Direction(8, rpigpio.OUT)  // green
+	pi.Direction(25, rpigpio.OUT) // red
+	pi.Pull(7, rpigpio.PULLOFF)
 
-	gpio.Write(8, rpigpio.LOW)
-	gpio.Write(25, rpigpio.HIGH)
-	var val rpigpio.PinState
+	pi.Write(8, gpio.LOW)
+	pi.Write(25, gpio.HIGH)
+	var val gpio.PinState
 	for n := 0; n < 10; n++ {
-		val, _ = gpio.Read(7)
+		val, _ = pi.Read(7)
 		fmt.Println("Read:", val)
 		if val == 1 {
-			gpio.Write(25, rpigpio.LOW)
-			gpio.Write(8, rpigpio.HIGH)
+			pi.Write(25, gpio.LOW)
+			pi.Write(8, gpio.HIGH)
 		} else {
-			gpio.Write(25, rpigpio.HIGH)
-			gpio.Write(8, rpigpio.LOW)
+			pi.Write(25, gpio.HIGH)
+			pi.Write(8, gpio.LOW)
 		}
 		time.Sleep(time.Second)
 	}
-	gpio.Write(25, rpigpio.LOW)
-	gpio.Write(8, rpigpio.LOW)
+	pi.Write(25, gpio.LOW)
+	pi.Write(8, gpio.LOW)
 }

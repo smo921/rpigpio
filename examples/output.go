@@ -4,16 +4,17 @@ import (
 	"time"
 
 	"github.com/smo921/rpigpio"
+	"github.com/smo921/rpigpio/gpio"
 )
 
 func main() {
-	gpio, _ := rpigpio.NewGPIO()
-	gpio.Direction(7, rpigpio.OUT)
+	pi, _ := rpigpio.NewGPIO()
+	pi.Direction(7, rpigpio.OUT)
 
 	for x := 0; x < 10; x++ {
-		gpio.Write(7, rpigpio.HIGH)
+		pi.Write(7, gpio.HIGH)
 		time.Sleep(time.Second)
-		gpio.Write(7, rpigpio.LOW)
+		pi.Write(7, gpio.LOW)
 		time.Sleep(time.Second)
 	}
 
